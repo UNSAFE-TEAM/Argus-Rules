@@ -2,6 +2,13 @@
   const TAG = "anti_injection";
   const MODULE_NAME = "kernel32.dll";
 
+  const API_HOOKS = [
+    { apiName: "Module32FirstA", nextApiName: "Module32NextA", wide: false },
+    { apiName: "Module32FirstW", nextApiName: "Module32NextW", wide: true },
+    { apiName: "Module32NextA", nextApiName: "Module32NextA", wide: false },
+    { apiName: "Module32NextW", nextApiName: "Module32NextW", wide: true },
+  ];
+
   const MODULE_ENTRY_OFFSETS = {
     x86: {
       szModule: 32,
@@ -17,6 +24,7 @@
 
   const hookedApis = {};
   let skipping = false;
+  const HIDDEN_KEYWORDS = ["frida", "gum", "argus"];
 
   function offsets() {
     return Process.pointerSize === 8
@@ -25,13 +33,7 @@
   }
 
   function shouldHidePath(path) {
-    const normalized = String(path || "").toLowerCase();
-
-    return (
-      normalized.includes("frida") ||
-      normalized.includes("gum") ||
-      normalized.includes("argus")
-    );
+    return Agent.containsAny(path, HIDDEN_KEYWORDS);
   }
 
   function readModulePath(entry, wide) {
@@ -43,7 +45,7 @@
     const field = entry.add(offset);
 
     try {
-      return wide ? field.readUtf16String() : field.readAnsiString();
+      return Agent.readString(field, wide);
     } catch (_) {
       return "";
     }
@@ -161,10 +163,9 @@
 
   Agent.safeCall(TAG, () => {
     Agent.whenModuleLoaded(MODULE_NAME, () => {
-      install("Module32FirstA", "Module32NextA", false);
-      install("Module32FirstW", "Module32NextW", true);
-      install("Module32NextA", "Module32NextA", false);
-      install("Module32NextW", "Module32NextW", true);
+      for (const hook of API_HOOKS) {
+        install(hook.apiName, hook.nextApiName, hook.wide);
+      }
     });
   });
 })();

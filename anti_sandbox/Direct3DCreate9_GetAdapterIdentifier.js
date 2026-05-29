@@ -20,7 +20,6 @@
   ];
 
   const hookedMethods = {};
-  let installedAddress = null;
 
   function hex(value) {
     return "0x" + value.toString(16);
@@ -97,14 +96,7 @@
   }
 
   function install() {
-    const addr = Agent.getExport(MODULE_NAME, API_NAME);
-    const key = addr.toString();
-
-    if (installedAddress === key) {
-      return;
-    }
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, MODULE_NAME, API_NAME, () => ({
       onEnter(args) {
         this.caller = this.returnAddress;
 
@@ -123,10 +115,7 @@
           hookD3D9Object(retval);
         }
       },
-    });
-
-    installedAddress = key;
-    Agent.register(TAG, MODULE_NAME, API_NAME);
+    }));
   }
 
   Agent.safeCall(TAG, () => {

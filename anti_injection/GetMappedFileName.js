@@ -3,28 +3,17 @@
   const DOS_FAKE_PATH = "C:\\Windows\\System32\\version.dll";
   const NT_FAKE_SUFFIX = "\\Windows\\System32\\version.dll";
 
-  const hookedApis = {};
+  const API_HOOKS = [
+    { moduleName: "kernel32.dll", apiName: "K32GetMappedFileNameA", wide: false },
+    { moduleName: "kernel32.dll", apiName: "K32GetMappedFileNameW", wide: true },
+    { moduleName: "psapi.dll", apiName: "GetMappedFileNameA", wide: false },
+    { moduleName: "psapi.dll", apiName: "GetMappedFileNameW", wide: true },
+  ];
+
+  const HIDDEN_KEYWORDS = ["frida", "gum", "argus"];
 
   function shouldHidePath(path) {
-    const normalized = String(path || "").toLowerCase();
-
-    return (
-      normalized.includes("frida") ||
-      normalized.includes("gum") ||
-      normalized.includes("argus")
-    );
-  }
-
-  function readPath(buffer, wide) {
-    if (!buffer || buffer.isNull()) {
-      return "";
-    }
-
-    try {
-      return wide ? buffer.readUtf16String() : buffer.readAnsiString();
-    } catch (_) {
-      return "";
-    }
+    return Agent.containsAny(path, HIDDEN_KEYWORDS);
   }
 
   function fakePath(original) {
@@ -37,30 +26,8 @@
     return DOS_FAKE_PATH;
   }
 
-  function writePath(buffer, maxChars, wide, value) {
-    if (!buffer || buffer.isNull() || maxChars <= 0) {
-      return 0;
-    }
-
-    const path = value.slice(0, Math.max(0, maxChars - 1));
-
-    if (wide) {
-      buffer.writeUtf16String(path);
-    } else {
-      buffer.writeAnsiString(path);
-    }
-
-    return path.length;
-  }
-
   function hookGetMappedFileName(moduleName, apiName, wide) {
-    const addr = Agent.getExport(moduleName, apiName);
-
-    if (!addr) {
-      return;
-    }
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, moduleName, apiName, () => ({
       onEnter(args) {
         this.caller = this.returnAddress;
         this.buffer = args[2];
@@ -72,14 +39,14 @@
           return;
         }
 
-        const original = readPath(this.buffer, wide);
+        const original = Agent.readString(this.buffer, wide);
 
         if (!shouldHidePath(original)) {
           return;
         }
 
         const current = fakePath(original);
-        const written = writePath(this.buffer, this.size, wide, current);
+        const written = Agent.writeString(this.buffer, this.size, current, wide);
         retval.replace(written);
 
         Agent.collect(
@@ -96,31 +63,16 @@
           current: { module: current },
         });
       },
-    });
-
-    Agent.register(TAG, moduleName, apiName);
+    }));
   }
 
-  function install(moduleName, apiName, wide) {
-    const key = `${moduleName}!${apiName}`;
-
-    if (hookedApis[key]) {
-      return;
-    }
-
-    hookedApis[key] = true;
-    hookGetMappedFileName(moduleName, apiName, wide);
+  function install(hook) {
+    hookGetMappedFileName(hook.moduleName, hook.apiName, hook.wide);
   }
 
   Agent.safeCall(TAG, () => {
-    Agent.whenModuleLoaded("kernel32.dll", () => {
-      install("kernel32.dll", "K32GetMappedFileNameA", false);
-      install("kernel32.dll", "K32GetMappedFileNameW", true);
-    });
-
-    Agent.whenModuleLoaded("psapi.dll", () => {
-      install("psapi.dll", "GetMappedFileNameA", false);
-      install("psapi.dll", "GetMappedFileNameW", true);
-    });
+    for (const hook of API_HOOKS) {
+      Agent.whenModuleLoaded(hook.moduleName, () => install(hook));
+    }
   });
 })();

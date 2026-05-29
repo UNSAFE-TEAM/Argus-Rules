@@ -2,54 +2,21 @@
   const TAG = "anti_injection";
   const FAKE_MODULE_PATH = "C:\\Windows\\System32\\version.dll";
 
-  const hookedApis = {};
+  const API_HOOKS = [
+    { moduleName: "kernel32.dll", apiName: "GetModuleFileNameA", wide: false },
+    { moduleName: "kernel32.dll", apiName: "GetModuleFileNameW", wide: true },
+    { moduleName: "kernelbase.dll", apiName: "GetModuleFileNameA", wide: false },
+    { moduleName: "kernelbase.dll", apiName: "GetModuleFileNameW", wide: true },
+  ];
+
+  const HIDDEN_KEYWORDS = ["frida", "gum", "argus"];
 
   function shouldHidePath(path) {
-    const normalized = String(path || "").toLowerCase();
-
-    return (
-      normalized.includes("frida") ||
-      normalized.includes("gum") ||
-      normalized.includes("argus")
-    );
-  }
-
-  function readPath(buffer, wide) {
-    if (!buffer || buffer.isNull()) {
-      return "";
-    }
-
-    try {
-      return wide ? buffer.readUtf16String() : buffer.readAnsiString();
-    } catch (_) {
-      return "";
-    }
-  }
-
-  function writePath(buffer, maxChars, wide) {
-    if (!buffer || buffer.isNull() || maxChars <= 0) {
-      return 0;
-    }
-
-    const path = FAKE_MODULE_PATH.slice(0, Math.max(0, maxChars - 1));
-
-    if (wide) {
-      buffer.writeUtf16String(path);
-    } else {
-      buffer.writeAnsiString(path);
-    }
-
-    return path.length;
+    return Agent.containsAny(path, HIDDEN_KEYWORDS);
   }
 
   function hookGetModuleFileName(moduleName, apiName, wide) {
-    const addr = Agent.getExport(moduleName, apiName);
-
-    if (!addr) {
-      return;
-    }
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, moduleName, apiName, () => ({
       onEnter(args) {
         this.caller = this.returnAddress;
         this.buffer = args[1];
@@ -61,13 +28,18 @@
           return;
         }
 
-        const original = readPath(this.buffer, wide);
+        const original = Agent.readString(this.buffer, wide);
 
         if (!shouldHidePath(original)) {
           return;
         }
 
-        const written = writePath(this.buffer, this.size, wide);
+        const written = Agent.writeString(
+          this.buffer,
+          this.size,
+          FAKE_MODULE_PATH,
+          wide,
+        );
         retval.replace(written);
 
         Agent.collect(
@@ -84,31 +56,16 @@
           current: { module: FAKE_MODULE_PATH },
         });
       },
-    });
-
-    Agent.register(TAG, moduleName, apiName);
+    }));
   }
 
-  function install(moduleName, apiName, wide) {
-    const key = `${moduleName}!${apiName}`;
-
-    if (hookedApis[key]) {
-      return;
-    }
-
-    hookedApis[key] = true;
-    hookGetModuleFileName(moduleName, apiName, wide);
+  function install(hook) {
+    hookGetModuleFileName(hook.moduleName, hook.apiName, hook.wide);
   }
 
   Agent.safeCall(TAG, () => {
-    Agent.whenModuleLoaded("kernel32.dll", () => {
-      install("kernel32.dll", "GetModuleFileNameA", false);
-      install("kernel32.dll", "GetModuleFileNameW", true);
-    });
-
-    Agent.whenModuleLoaded("kernelbase.dll", () => {
-      install("kernelbase.dll", "GetModuleFileNameA", false);
-      install("kernelbase.dll", "GetModuleFileNameW", true);
-    });
+    for (const hook of API_HOOKS) {
+      Agent.whenModuleLoaded(hook.moduleName, () => install(hook));
+    }
   });
 })();

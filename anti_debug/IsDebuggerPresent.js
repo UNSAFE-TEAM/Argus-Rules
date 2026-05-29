@@ -1,19 +1,11 @@
 (() => {
   const TAG = "anti_debug";
-  const API_NAME = "IsDebuggerPresent";
   const MODULE_NAME = "kernel32.dll";
+  const API_NAME = "IsDebuggerPresent";
   const ARG_SPEC = [];
 
-  let installed = false;
-
   function install() {
-    if (installed) {
-      return;
-    }
-
-    const addr = Agent.getExport(MODULE_NAME, API_NAME);
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, MODULE_NAME, API_NAME, () => ({
       onEnter(_args) {
         this.caller = this.returnAddress;
 
@@ -37,10 +29,7 @@
           current: { return: "0" },
         });
       },
-    });
-
-    installed = true;
-    Agent.register(TAG, MODULE_NAME, API_NAME);
+    }));
   }
 
   Agent.safeCall(TAG, () => {

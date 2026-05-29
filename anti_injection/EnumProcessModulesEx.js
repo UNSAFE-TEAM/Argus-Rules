@@ -1,7 +1,12 @@
 (() => {
   const TAG = "anti_injection";
 
-  const ENUM_ARG_SPEC = [
+  const API_HOOKS = [
+    { moduleName: "kernel32.dll", apiName: "K32EnumProcessModulesEx" },
+    { moduleName: "psapi.dll", apiName: "EnumProcessModulesEx" },
+  ];
+
+  const ARG_SPEC = [
     { index: 0, name: "hProcess" },
     { index: 1, name: "lphModule" },
     { index: 2, name: "cb" },
@@ -9,7 +14,7 @@
     { index: 4, name: "dwFilterFlag" },
   ];
 
-  const hookedApis = {};
+  const HIDDEN_KEYWORDS = ["frida", "gum", "argus"];
 
   function shouldHideModule(module) {
     if (!module) {
@@ -19,14 +24,7 @@
     const name = String(module.name || "").toLowerCase();
     const path = String(module.path || "").toLowerCase();
 
-    return (
-      name.includes("frida") ||
-      name.includes("gum") ||
-      name.includes("argus") ||
-      path.includes("frida") ||
-      path.includes("gum") ||
-      path.includes("argus")
-    );
+    return Agent.containsAny(name, HIDDEN_KEYWORDS) || Agent.containsAny(path, HIDDEN_KEYWORDS);
   }
 
   function moduleFromHandle(handle) {
@@ -42,13 +40,7 @@
   }
 
   function hookEnum(moduleName, apiName) {
-    const addr = Agent.getExport(moduleName, apiName);
-
-    if (!addr) {
-      return;
-    }
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, moduleName, apiName, () => ({
       onEnter(args) {
         this.caller = this.returnAddress;
         this.modules = args[1];
@@ -108,35 +100,16 @@
           current: { hidden: String(hidden.length) },
         });
       },
-    });
-
-    Agent.register(TAG, moduleName, apiName);
+    }));
   }
 
-  function install(moduleName, hooks) {
-    for (const hook of hooks) {
-      const key = `${moduleName}!${hook.apiName}`;
-
-      if (hookedApis[key]) {
-        continue;
-      }
-
-      hookedApis[key] = true;
-      hook.install(moduleName, hook.apiName);
-    }
+  function install(hook) {
+    hookEnum(hook.moduleName, hook.apiName);
   }
 
   Agent.safeCall(TAG, () => {
-    Agent.whenModuleLoaded("kernel32.dll", () => {
-      install("kernel32.dll", [
-        { apiName: "K32EnumProcessModulesEx", install: hookEnum },
-      ]);
-    });
-
-    Agent.whenModuleLoaded("psapi.dll", () => {
-      install("psapi.dll", [
-        { apiName: "EnumProcessModulesEx", install: hookEnum },
-      ]);
-    });
+    for (const hook of API_HOOKS) {
+      Agent.whenModuleLoaded(hook.moduleName, () => install(hook));
+    }
   });
 })();

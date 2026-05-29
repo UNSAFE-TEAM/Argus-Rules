@@ -12,8 +12,8 @@
     },
   };
 
-  let installed = false;
   let originalCallback = null;
+  const HIDDEN_KEYWORDS = ["frida", "gum", "argus"];
 
   function offsets() {
     return Process.pointerSize === 8
@@ -21,52 +21,20 @@
       : LDR_DATA_TABLE_ENTRY_OFFSETS.x86;
   }
 
-  function readUnicodeString(unicodeString) {
-    if (!unicodeString || unicodeString.isNull()) {
-      return "";
-    }
-
-    try {
-      const length = unicodeString.readU16();
-      const bufferOffset = Process.pointerSize === 8 ? 8 : 4;
-      const buffer = unicodeString.add(bufferOffset).readPointer();
-
-      if (!buffer || buffer.isNull() || length === 0) {
-        return "";
-      }
-
-      return buffer.readUtf16String(length / 2);
-    } catch (_) {
-      return "";
-    }
-  }
-
   function readFullDllName(ldrEntry) {
     if (!ldrEntry || ldrEntry.isNull()) {
       return "";
     }
 
-    return readUnicodeString(ldrEntry.add(offsets().fullDllName));
+    return Agent.readUnicodeString(ldrEntry.add(offsets().fullDllName));
   }
 
   function shouldHidePath(path) {
-    const normalized = String(path || "").toLowerCase();
-
-    return (
-      normalized.includes("frida") ||
-      normalized.includes("gum") ||
-      normalized.includes("argus")
-    );
+    return Agent.containsAny(path, HIDDEN_KEYWORDS);
   }
 
   function install() {
-    if (installed) {
-      return;
-    }
-
-    const addr = Agent.getExport(MODULE_NAME, API_NAME);
-
-    Interceptor.attach(addr, {
+    Agent.attachApi(TAG, MODULE_NAME, API_NAME, () => ({
       onEnter(args) {
         this.caller = this.returnAddress;
         this.originalCallback = args[1];
@@ -116,10 +84,7 @@
           current: { hidden: String(this.hidden.length) },
         });
       },
-    });
-
-    installed = true;
-    Agent.register(TAG, MODULE_NAME, API_NAME);
+    }));
   }
 
   Agent.safeCall(TAG, () => {
