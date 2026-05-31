@@ -1,4 +1,5 @@
 (() => {
+  const Agent = globalThis.AgentV1;
   const TAG = "anti_sandbox";
   const API_NAME = "Direct3DCreate9";
   const MODULE_NAME = "d3d9.dll";

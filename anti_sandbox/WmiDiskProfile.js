@@ -1,4 +1,5 @@
 (() => {
+  const Agent = globalThis.AgentV1;
   const TAG = "anti_sandbox";
   const MODULE_NAME = "ole32.dll";
   const API_NAME = "CoCreateInstance";

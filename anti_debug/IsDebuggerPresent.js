@@ -1,4 +1,5 @@
 (() => {
+  const Agent = globalThis.AgentV1;
   const TAG = "anti_debug";
   const MODULE_NAME = "kernel32.dll";
   const API_NAME = "IsDebuggerPresent";

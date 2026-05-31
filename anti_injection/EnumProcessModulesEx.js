@@ -1,4 +1,5 @@
 (() => {
+  const Agent = globalThis.AgentV1;
   const TAG = "anti_injection";
 
   const API_HOOKS = [

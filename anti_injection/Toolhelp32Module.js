@@ -1,4 +1,5 @@
 (() => {
+  const Agent = globalThis.AgentV1;
   const TAG = "anti_injection";
   const MODULE_NAME = "kernel32.dll";
 
