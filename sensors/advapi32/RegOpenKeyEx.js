@@ -7,8 +7,38 @@
   const ERROR_FILE_NOT_FOUND = 2;
 
   const API_HOOKS = [
-    { moduleName: "advapi32.dll", apiName: "RegOpenKeyExA", wide: false },
-    { moduleName: "advapi32.dll", apiName: "RegOpenKeyExW", wide: true },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegOpenKeyA",
+      wide: false,
+      subKeyIndex: 1,
+      resultKeyIndex: 2,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegOpenKeyW",
+      wide: true,
+      subKeyIndex: 1,
+      resultKeyIndex: 2,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegOpenKeyExA",
+      wide: false,
+      subKeyIndex: 1,
+      optionsIndex: 2,
+      samDesiredIndex: 3,
+      resultKeyIndex: 4,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegOpenKeyExW",
+      wide: true,
+      subKeyIndex: 1,
+      optionsIndex: 2,
+      samDesiredIndex: 3,
+      resultKeyIndex: 4,
+    },
   ];
 
   globalThis.ArgusSensorState = globalThis.ArgusSensorState || {};
@@ -34,10 +64,14 @@
                 args[0],
                 ArgusSensorState.registryKeys,
               ),
-              subKey: readSubKey(args[1], hook.wide),
-              options: args[2],
-              samDesired: args[3],
-              resultKey: args[4],
+              subKey: readSubKey(args[hook.subKeyIndex], hook.wide),
+              options:
+                hook.optionsIndex === undefined ? ptr(0) : args[hook.optionsIndex],
+              samDesired:
+                hook.samDesiredIndex === undefined
+                  ? ptr(0)
+                  : args[hook.samDesiredIndex],
+              resultKey: args[hook.resultKeyIndex],
               originalStatus: null,
               currentStatus: null,
               action: null,

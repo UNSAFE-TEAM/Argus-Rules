@@ -5,8 +5,36 @@
   const TAG = "sensor";
   const ERROR_SUCCESS = 0;
   const API_HOOKS = [
-    { moduleName: "advapi32.dll", apiName: "RegCreateKeyExA", wide: false },
-    { moduleName: "advapi32.dll", apiName: "RegCreateKeyExW", wide: true },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegCreateKeyA",
+      wide: false,
+      subKeyIndex: 1,
+      resultKeyIndex: 2,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegCreateKeyW",
+      wide: true,
+      subKeyIndex: 1,
+      resultKeyIndex: 2,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegCreateKeyExA",
+      wide: false,
+      subKeyIndex: 1,
+      resultKeyIndex: 7,
+      dispositionIndex: 8,
+    },
+    {
+      moduleName: "advapi32.dll",
+      apiName: "RegCreateKeyExW",
+      wide: true,
+      subKeyIndex: 1,
+      resultKeyIndex: 7,
+      dispositionIndex: 8,
+    },
   ];
 
   globalThis.ArgusSensorState = globalThis.ArgusSensorState || {};
@@ -28,9 +56,12 @@
                 args[0],
                 ArgusSensorState.registryKeys,
               ),
-              subKey: Agent.readString(args[1], hook.wide),
-              resultKey: args[7],
-              disposition: args[8],
+              subKey: Agent.readString(args[hook.subKeyIndex], hook.wide),
+              resultKey: args[hook.resultKeyIndex],
+              disposition:
+                hook.dispositionIndex === undefined
+                  ? ptr(0)
+                  : args[hook.dispositionIndex],
             };
             sensor.emit(this.ctx);
           },

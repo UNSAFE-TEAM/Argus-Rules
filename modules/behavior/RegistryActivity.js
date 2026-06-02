@@ -84,6 +84,7 @@
     },
     apply(ctx) {
       emit(ctx, "registry_set_value", {
+        keyHandle: ctx.keyHandle ? ctx.keyHandle.toString() : "",
         keyPath: ctx.keyPath,
         valueName: ctx.valueName,
         type: String(ctx.type),
@@ -92,15 +93,8 @@
     },
   });
 
-  ArgusSensors.use("RegOpenKeyEx", {
-    name: "behavior.registry.track_open_key",
-    match() {
-      return false;
-    },
-  });
-
-  ArgusSensors.use("RegCreateKeyEx", {
-    name: "behavior.registry.track_create_key",
+  ArgusSensors.use("RegistryNativeKey", {
+    name: "behavior.registry.track_native_key",
     match() {
       return false;
     },
@@ -113,6 +107,7 @@
     },
     apply(ctx) {
       emit(ctx, "registry_delete_value", {
+        keyHandle: ctx.keyHandle ? ctx.keyHandle.toString() : "",
         keyPath: ctx.keyPath,
         valueName: ctx.valueName,
       });
@@ -125,7 +120,10 @@
       return !!ctx.subKey;
     },
     apply(ctx) {
-      emit(ctx, "registry_delete_key", { subKey: ctx.subKey });
+      emit(ctx, "registry_delete_key", {
+        rootKey: ctx.rootKey ? ctx.rootKey.toString() : "",
+        subKey: ctx.subKey,
+      });
     },
   });
 
@@ -135,7 +133,10 @@
       return !!ctx.subKey;
     },
     apply(ctx) {
-      emit(ctx, "registry_delete_tree", { subKey: ctx.subKey });
+      emit(ctx, "registry_delete_tree", {
+        rootKey: ctx.rootKey ? ctx.rootKey.toString() : "",
+        subKey: ctx.subKey,
+      });
     },
   });
 
@@ -146,6 +147,7 @@
     },
     apply(ctx) {
       emit(ctx, "registry_rename_key", {
+        keyHandle: ctx.keyHandle ? ctx.keyHandle.toString() : "",
         subKey: ctx.subKey,
         newName: ctx.newName,
       });
