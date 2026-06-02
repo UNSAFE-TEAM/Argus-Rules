@@ -1,7 +1,7 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const TAG = "profile_vmware";
+  const TAG = "preset_vmware";
 
   const SIGNATURES = [
     { original: "VMware", current: "LENOVO" },

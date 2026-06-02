@@ -1,12 +1,14 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const TAG = "profile_vmware";
+  const TAG = "preset_vmware";
 
   const HIDDEN_DEVICES = ["\\\\.\\hgfs", "\\\\.\\vmci"];
 
   function normalizeDeviceName(path) {
-    return String(path || "").toLowerCase().replaceAll("/", "\\");
+    return String(path || "")
+      .toLowerCase()
+      .replaceAll("/", "\\");
   }
 
   ArgusSensors.use("CreateFile", {

@@ -1,7 +1,7 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const TAG = "profile_vmware";
+  const TAG = "preset_vmware";
 
   const HIDDEN_FILES = [
     "vmnet.sys",
@@ -21,7 +21,9 @@
   const HIDDEN_DIRECTORIES = ["\\vmware\\"];
 
   function shouldHideFile(path) {
-    const normalized = String(path || "").toLowerCase().replaceAll("/", "\\");
+    const normalized = String(path || "")
+      .toLowerCase()
+      .replaceAll("/", "\\");
 
     if (
       normalized.includes("\\system32\\drivers\\") &&

@@ -30,6 +30,10 @@
               wide: hook.wide,
               caller: this.returnAddress.toString(),
               rootKey: args[0],
+              keyPath: ArgusRegistryPathV1.keyName(
+                args[0],
+                ArgusSensorState.registryKeys,
+              ),
               subKey: readSubKey(args[1], hook.wide),
               options: args[2],
               samDesired: args[3],
@@ -61,8 +65,9 @@
               ctx.resultKey &&
               !ctx.resultKey.isNull()
             ) {
+              const keyPath = ArgusRegistryPathV1.join(ctx.keyPath, ctx.subKey);
               ArgusSensorState.registryKeys[ctx.resultKey.readPointer().toString()] =
-                ctx.subKey;
+                keyPath;
             }
           },
         }));

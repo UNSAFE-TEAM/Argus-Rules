@@ -1,7 +1,7 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const TAG = "profile_vmware";
+  const TAG = "preset_vmware";
 
   const HIDDEN_KEYWORDS = ["vmware", "ven_15ad"];
   const VALUE_REPLACEMENTS = {
@@ -34,7 +34,9 @@
     name: "vmware.registry.query_value",
     match(ctx) {
       const replacement = VALUE_REPLACEMENTS[ctx.valueName];
-      return !!replacement && Agent.containsAny(ctx.originalValue, HIDDEN_KEYWORDS);
+      return (
+        !!replacement && Agent.containsAny(ctx.originalValue, HIDDEN_KEYWORDS)
+      );
     },
     apply(ctx) {
       const replacement = VALUE_REPLACEMENTS[ctx.valueName];

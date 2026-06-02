@@ -3,8 +3,6 @@
   const ArgusSensors = globalThis.ArgusSensorsV1;
   const SENSOR_NAME = "kernel32.GetModuleFileName";
   const API_HOOKS = [
-    { moduleName: "kernel32.dll", apiName: "GetModuleFileNameA", wide: false },
-    { moduleName: "kernel32.dll", apiName: "GetModuleFileNameW", wide: true },
     { moduleName: "kernelbase.dll", apiName: "GetModuleFileNameA", wide: false },
     { moduleName: "kernelbase.dll", apiName: "GetModuleFileNameW", wide: true },
   ];

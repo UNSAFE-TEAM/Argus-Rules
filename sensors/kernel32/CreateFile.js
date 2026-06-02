@@ -7,11 +7,12 @@
   const ERROR_FILE_NOT_FOUND = 2;
 
   const API_HOOKS = [
-    { moduleName: "kernel32.dll", apiName: "CreateFileA", wide: false },
-    { moduleName: "kernel32.dll", apiName: "CreateFileW", wide: true },
     { moduleName: "kernelbase.dll", apiName: "CreateFileA", wide: false },
     { moduleName: "kernelbase.dll", apiName: "CreateFileW", wide: true },
   ];
+
+  globalThis.ArgusSensorState = globalThis.ArgusSensorState || {};
+  ArgusSensorState.fileHandles = ArgusSensorState.fileHandles || {};
 
   let setLastError = null;
 
@@ -55,20 +56,28 @@
                 this.action = "fail";
               },
             };
+
+            sensor.emit(this.ctx);
           },
 
           onLeave(retval) {
             const ctx = this.ctx;
             ctx.originalHandle = retval;
-            ctx.currentHandle = retval;
-
-            sensor.emit(ctx);
+            if (ctx.currentHandle === null) {
+              ctx.currentHandle = retval;
+            }
 
             if (ctx.currentHandle !== ctx.originalHandle) {
               retval.replace(ctx.currentHandle);
               try {
                 setError(ctx.lastError || ERROR_FILE_NOT_FOUND);
               } catch (_) {}
+            } else if (
+              ctx.currentHandle &&
+              !ctx.currentHandle.isNull() &&
+              ctx.currentHandle.toString() !== INVALID_HANDLE_VALUE.toString()
+            ) {
+              ArgusSensorState.fileHandles[ctx.currentHandle.toString()] = ctx.path;
             }
           },
         }));

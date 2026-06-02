@@ -1,7 +1,7 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const TAG = "profile_vmware";
+  const TAG = "preset_vmware";
 
   const BLOCKED_OUIS = [
     { original: [0x00, 0x05, 0x69], current: [0x00, 0xe0, 0x4c] },
