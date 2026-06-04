@@ -18,6 +18,11 @@
     return value === null || value === undefined ? "" : String(value);
   }
 
+  function isCurrentProcessHandle(value) {
+    const text = ptrString(value).toLowerCase();
+    return text === "0xffffffffffffffff" || text === "-1";
+  }
+
   ArgusSensors.use("ProcessAccess", {
     name: "behavior.injection.process_open",
     match(ctx) {
@@ -35,8 +40,8 @@
 
   ArgusSensors.use("RemoteMemory", {
     name: "behavior.injection.remote_memory",
-    match() {
-      return true;
+    match(ctx) {
+      return !isCurrentProcessHandle(ctx.processHandle);
     },
     apply(ctx) {
       if (ctx.apiName === "VirtualAllocEx") {
@@ -76,7 +81,14 @@
 
   ArgusSensors.use("ThreadInjection", {
     name: "behavior.injection.thread",
-    match() {
+    match(ctx) {
+      if (
+        ctx.apiName === "CreateRemoteThread" ||
+        ctx.apiName === "CreateRemoteThreadEx"
+      ) {
+        return !isCurrentProcessHandle(ctx.processHandle);
+      }
+
       return true;
     },
     apply(ctx) {
@@ -122,8 +134,8 @@
 
   ArgusSensors.use("NtCreateThreadEx", {
     name: "behavior.injection.nt_create_thread_ex",
-    match() {
-      return true;
+    match(ctx) {
+      return !isCurrentProcessHandle(ctx.processHandle);
     },
     apply(ctx) {
       emit(ctx, "remote_thread_create", {
