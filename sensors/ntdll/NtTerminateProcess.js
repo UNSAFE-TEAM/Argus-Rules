@@ -31,7 +31,6 @@
             moduleName,
             apiName,
             caller: this.returnAddress.toString(),
-            context: this.context,
             targetHandle: args[0],
             exitCode: args[1].toInt32(),
           };
