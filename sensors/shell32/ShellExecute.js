@@ -53,6 +53,7 @@
               apiName: hook.apiName,
               wide: hook.wide,
               caller: this.returnAddress.toString(),
+              context: this.context,
               verb: info.verb || "",
               file: info.file || "",
               parameters: info.parameters || "",

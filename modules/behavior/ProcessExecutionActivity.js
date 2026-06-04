@@ -9,13 +9,17 @@
       .join(" ");
   }
 
+  let currentProcessExitSeen = false;
+
   ArgusSensors.use("CreateProcess", {
     name: "behavior.process_execution.create_process",
     match(ctx) {
       return !!(ctx.application || ctx.commandLine);
     },
     apply(ctx) {
-      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, ctx.caller, {
+      const caller = Agent.resolveCallerAddress(ctx.caller, ctx.context);
+
+      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, caller, {
         action: "process_create",
         process: {
           application: ctx.application,
@@ -33,13 +37,86 @@
       return !!command(ctx);
     },
     apply(ctx) {
-      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, ctx.caller, {
+      const caller = Agent.resolveCallerAddress(ctx.caller, ctx.context);
+
+      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, caller, {
         action: "shell_execute",
         process: {
           verb: ctx.verb,
           file: ctx.file,
           parameters: ctx.parameters,
           directory: ctx.directory,
+        },
+      });
+    },
+  });
+
+  ArgusSensors.use("ExitProcess", {
+    name: "behavior.process_execution.exit_process",
+    match() {
+      return true;
+    },
+    apply(ctx) {
+      currentProcessExitSeen = true;
+
+      const caller = Agent.resolveCallerAddress(ctx.caller, ctx.context);
+
+      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, caller, {
+        action: "process_exit",
+        process: {
+          exitCode: String(ctx.exitCode),
+        },
+      });
+    },
+  });
+
+  ArgusSensors.use("RtlExitUserProcess", {
+    name: "behavior.process_execution.exit_process",
+    match() {
+      return true;
+    },
+    apply(ctx) {
+      currentProcessExitSeen = true;
+
+      const caller = Agent.resolveCallerAddress(ctx.caller, ctx.context);
+
+      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, caller, {
+        action: "process_exit",
+        process: {
+          exitCode: String(ctx.exitCode),
+        },
+      });
+    },
+  });
+
+  ArgusSensors.use("NtTerminateProcess", {
+    name: "behavior.process_execution.terminate_process",
+    match(ctx) {
+      const targetHandle = ctx.targetHandle ? ctx.targetHandle.toString() : "";
+      const isCurrentProcess =
+        targetHandle === "0xffffffffffffffff" || targetHandle === "-1";
+
+      if (isCurrentProcess && currentProcessExitSeen) {
+        return false;
+      }
+
+      return true;
+    },
+    apply(ctx) {
+      const targetHandle = ctx.targetHandle ? ctx.targetHandle.toString() : "";
+      const isCurrentProcess =
+        targetHandle === "0xffffffffffffffff" || targetHandle === "-1";
+      const caller = Agent.resolveCallerAddress(ctx.caller, ctx.context);
+
+      if (isCurrentProcess) {
+        currentProcessExitSeen = true;
+      }
+
+      Agent.triggered(TAG, ctx.moduleName, ctx.apiName, caller, {
+        action: isCurrentProcess ? "process_exit" : "process_terminate",
+        process: {
+          targetHandle,
+          exitCode: String(ctx.exitCode),
         },
       });
     },

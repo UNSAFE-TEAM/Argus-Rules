@@ -33,6 +33,7 @@
               apiName: hook.apiName,
               wide: hook.wide,
               caller: this.returnAddress.toString(),
+              context: this.context,
               application: Agent.readString(args[hook.applicationIndex], hook.wide),
               commandLine: Agent.readString(args[hook.commandLineIndex], hook.wide),
               creationFlags: args[hook.creationFlagsIndex].toUInt32(),
