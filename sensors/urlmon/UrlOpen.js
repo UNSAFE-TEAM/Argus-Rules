@@ -1,12 +1,13 @@
 (() => {
   const Agent = globalThis.AgentV1;
   const ArgusSensors = globalThis.ArgusSensorsV1;
-  const SENSOR_NAME = "ws2_32.NameResolution";
+  const SENSOR_NAME = "urlmon.UrlOpen";
   const TAG = "sensor";
   const API_HOOKS = [
-    { moduleName: "ws2_32.dll", apiName: "GetAddrInfoW", wide: true },
-    { moduleName: "ws2_32.dll", apiName: "getaddrinfo", wide: false },
-    { moduleName: "ws2_32.dll", apiName: "gethostbyname", wide: false },
+    { moduleName: "urlmon.dll", apiName: "URLDownloadToFileA", wide: false },
+    { moduleName: "urlmon.dll", apiName: "URLDownloadToFileW", wide: true },
+    { moduleName: "urlmon.dll", apiName: "URLOpenBlockingStreamA", wide: false },
+    { moduleName: "urlmon.dll", apiName: "URLOpenBlockingStreamW", wide: true },
   ];
 
   ArgusSensors.define(SENSOR_NAME, (sensor) => {
@@ -18,12 +19,11 @@
               sensor: SENSOR_NAME,
               moduleName: hook.moduleName,
               apiName: hook.apiName,
-              wide: hook.wide,
               caller: this.returnAddress.toString(),
-              host: Agent.readString(args[0], hook.wide),
-              service: hook.apiName === "gethostbyname" ? "" : Agent.readString(args[1], hook.wide),
+              url: Agent.readString(args[1], hook.wide),
             };
-            if (this.ctx.host) {
+
+            if (this.ctx.url) {
               sensor.emit(this.ctx);
             }
           },

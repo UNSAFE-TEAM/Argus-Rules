@@ -7,6 +7,7 @@
   const API_HOOKS = [
     { moduleName: "dnsapi.dll", apiName: "DnsQuery_A", wide: false },
     { moduleName: "dnsapi.dll", apiName: "DnsQuery_W", wide: true },
+    { moduleName: "dnsapi.dll", apiName: "DnsQuery_UTF8", wide: false },
   ];
 
   ArgusSensors.define(SENSOR_NAME, (sensor) => {

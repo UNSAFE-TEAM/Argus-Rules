@@ -21,6 +21,24 @@
 
   ArgusSensors.define(SENSOR_NAME, (sensor) => {
     Agent.whenModuleLoaded("winhttp.dll", () => {
+      Agent.attachApi(TAG, "winhttp.dll", "WinHttpOpen", () => ({
+        onEnter(args) {
+          this.ctx = {
+            sensor: SENSOR_NAME,
+            moduleName: "winhttp.dll",
+            apiName: "WinHttpOpen",
+            caller: this.returnAddress.toString(),
+            event: "session",
+            userAgent: Agent.readUtf16(args[0]),
+            accessType: args[1].toUInt32(),
+            proxy: Agent.readUtf16(args[2]),
+            proxyBypass: Agent.readUtf16(args[3]),
+            flags: args[4].toUInt32(),
+          };
+          sensor.emit(this.ctx);
+        },
+      }));
+
       Agent.attachApi(TAG, "winhttp.dll", "WinHttpConnect", () => ({
         onEnter(args) {
           this.ctx = {
@@ -69,6 +87,36 @@
             headers: Agent.readUtf16(args[1]),
           };
           if (this.ctx.url || this.ctx.headers) sensor.emit(this.ctx);
+        },
+      }));
+
+      Agent.attachApi(TAG, "winhttp.dll", "WinHttpSetStatusCallback", () => ({
+        onEnter(args) {
+          this.ctx = {
+            sensor: SENSOR_NAME,
+            moduleName: "winhttp.dll",
+            apiName: "WinHttpSetStatusCallback",
+            caller: this.returnAddress.toString(),
+            event: "callback",
+            handle: args[0],
+            callback: args[1].toString(),
+            flags: args[2].toUInt32(),
+          };
+          sensor.emit(this.ctx);
+        },
+      }));
+
+      Agent.attachApi(TAG, "winhttp.dll", "WinHttpCloseHandle", () => ({
+        onEnter(args) {
+          this.ctx = {
+            sensor: SENSOR_NAME,
+            moduleName: "winhttp.dll",
+            apiName: "WinHttpCloseHandle",
+            caller: this.returnAddress.toString(),
+            event: "close",
+            handle: args[0],
+          };
+          sensor.emit(this.ctx);
         },
       }));
     });
